@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMD — Email Idea Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #13306E;
+  --navy-dark: #0a1e47;
+  --navy-mid: #1e4a9e;
+  --blue-light: #e8eef8;
+  --blue-pale: #f2f5fb;
+  --red: #c0392b;
+  --red-light: #fdecea;
+  --green: #1a7a4a;
+  --green-light: #e8f5ee;
+  --amber: #c47a1a;
+  --amber-light: #fef3e2;
+  --gray-100: #f7f7f6;
+  --gray-200: #eeede9;
+  --gray-300: #d5d3cc;
+  --gray-400: #a8a59e;
+  --gray-600: #5e5b54;
+  --gray-800: #2e2c27;
+  --text: #1a1916;
+  --text-muted: #6b6860;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.14);
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--gray-100);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* LAYOUT */
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--navy);
+  color: white;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 28px 22px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-logo {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 6px;
+}
+
+.sidebar-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.sidebar-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 3px;
+}
+
+.nav-section {
+  padding: 16px 14px 6px;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.35);
+  padding: 0 8px;
+  margin-bottom: 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.75);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+.nav-item.active { background: rgba(255,255,255,0.15); color: white; }
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 22px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* API KEY INPUT */
+.api-section {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.api-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 6px;
+}
+
+.api-input-wrap { position: relative; }
+
+.api-input {
+  width: 100%;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: white;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.api-input::placeholder { color: rgba(255,255,255,0.25); }
+.api-input:focus { border-color: rgba(255,255,255,0.35); }
+
+.api-status {
+  font-size: 10px;
+  margin-top: 5px;
+  color: rgba(255,255,255,0.35);
+}
+
+.api-status.ok { color: #6ee7a0; }
+
+/* MAIN CONTENT */
+.main { padding: 32px 36px; overflow-y: auto; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* DATE BADGE */
+.date-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--navy);
+  background: var(--blue-light);
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* CARDS */
+.card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card + .card, .card + .idea-card, .idea-card + .card, .idea-card + .idea-card {
+  margin-top: 10px;
+}
+
+/* IDEA CARDS */
+.idea-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.idea-card:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
+
+.idea-card-header {
+  padding: 16px 18px 12px;
+}
+
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.source-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--navy);
+  flex-shrink: 0;
+}
+
+.source-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.card-hook {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+.tag-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.tag {
+  font-size: 10.5px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tag-blue { background: var(--blue-light); color: var(--navy); }
+.tag-red { background: var(--red-light); color: var(--red); }
+.tag-green { background: var(--green-light); color: var(--green); }
+.tag-amber { background: var(--amber-light); color: var(--amber); }
+.tag-gray { background: var(--gray-200); color: var(--gray-600); }
+
+/* CARD ACTIONS */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--gray-100);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--navy);
+  color: white;
+  border-color: var(--navy);
+}
+
+.btn-primary:hover { background: var(--navy-dark); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  background: white;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.btn-secondary:hover { background: var(--gray-200); }
+
+.btn-ghost {
+  background: none;
+  color: var(--text-muted);
+  border-color: transparent;
+}
+
+.btn-ghost:hover { background: var(--gray-200); color: var(--text); }
+
+.btn-danger {
+  background: var(--red-light);
+  color: var(--red);
+  border-color: transparent;
+}
+
+.btn-danger:hover { background: #f5d0cc; }
+
+/* DRAFT OUTPUT */
+.draft-output {
+  margin: 0 18px 14px;
+  padding: 14px 16px;
+  background: var(--blue-pale);
+  border: 1px solid var(--blue-light);
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  color: var(--text);
+  display: none;
+}
+
+.draft-output.loading {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.draft-output.visible { display: block; }
+
+/* SCHEDULE GRID */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.schedule-day {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-height: 120px;
+}
+
+.schedule-day-header {
+  background: var(--navy);
+  color: white;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.schedule-day-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.schedule-slot {
+  padding: 10px 12px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+}
+
+.schedule-slot:hover { background: var(--gray-100); }
+.schedule-slot:last-child { border-bottom: none; }
+
+.slot-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.slot-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.slot-empty {
+  font-size: 11px;
+  color: var(--gray-400);
+  font-style: italic;
+}
+
+.schedule-slot.filled { border-left: 3px solid var(--navy); padding-left: 9px; }
+.schedule-slot.filled.type-threat { border-left-color: var(--red); }
+.schedule-slot.filled.type-momentum { border-left-color: var(--green); }
+.schedule-slot.filled.type-issue { border-left-color: var(--amber); }
+.schedule-slot.filled.type-vision { border-left-color: #8b5cf6; }
+.schedule-slot.filled.type-grassroots { border-left-color: #0891b2; }
+.schedule-slot.filled.type-deadline { border-left-color: var(--red); }
+
+/* STORY INPUT PANEL */
+.story-input-panel {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+
+.story-input-panel h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.story-input-panel p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.story-textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.story-textarea:focus { border-color: var(--navy); }
+.story-textarea::placeholder { color: var(--gray-400); }
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* SECTION HEADERS */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  margin-top: 24px;
+}
+
+.section-header:first-child { margin-top: 0; }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+}
+
+/* FILTER BAR */
+.filter-bar {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  background: white;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: all 0.12s;
+}
+
+.chip:hover { border-color: var(--navy); color: var(--navy); }
+.chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+.filter-select {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  color: var(--text);
+  background: white;
+  outline: none;
+  cursor: pointer;
+}
+
+.filter-select:focus { border-color: var(--navy); }
+
+.bank-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* STATUS BAR */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--blue-pale);
+  border: 1px solid var(--blue-light);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--navy);
+  margin-bottom: 16px;
+}
+
+.status-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid var(--blue-light);
+  border-top-color: var(--navy);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* SCHEDULE MODAL */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  padding: 24px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.modal p { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+.modal-grid { display: grid; gap: 10px; }
+
+.modal-slot {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.modal-slot:hover { border-color: var(--navy); background: var(--blue-pale); }
+.modal-slot.selected { border-color: var(--navy); background: var(--blue-pale); }
+
+.modal-slot-label { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 3px; }
+.modal-slot-title { font-size: 13px; font-weight: 500; }
+
+.modal-footer { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
+/* SCHEDULE BUILDER page */
+.sched-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+}
+
+.week-nav button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  line-height: 1;
+  transition: background 0.1s;
+}
+
+.week-nav button:hover { background: var(--gray-200); color: var(--text); }
+
+.week-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  min-width: 160px;
+  text-align: center;
+}
+
+/* EMPTY IDEAS OUTPUT */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+/* TOOLTIP / COPY FLASH */
+.copied-toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--gray-800);
+  color: white;
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.2s;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.copied-toast.show { opacity: 1; transform: translateY(0); }
+
+/* SETTINGS PAGE */
+.settings-section {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.settings-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.settings-section p { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+
+.settings-input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.settings-input:focus { border-color: var(--navy); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">WestWest Digital</div>
+    <div class="sidebar-title">EMD Idea Generator</div>
+    <div class="sidebar-sub">Elect More Democrats</div>
+  </div>
+
+  <div class="api-section">
+    <div class="api-label">Anthropic API Key</div>
+    <div class="api-input-wrap">
+      <input type="password" class="api-input" id="api-key-input" placeholder="sk-ant-..." oninput="saveApiKey(this.value)">
+    </div>
+    <div class="api-status" id="api-status">Enter key to enable drafting</div>
+  </div>
+
+  <nav class="nav-section">
+    <div class="nav-section-label">Tools</div>
+    <button class="nav-item active" onclick="showPage('this-week')" id="nav-this-week">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="16" height="13" rx="2"/><path d="M6 2v4M14 2v4M2 9h16"/></svg>
+      This Week
+    </button>
+    <button class="nav-item" onclick="showPage('schedule')" id="nav-schedule">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 10h12M4 6h12M4 14h6"/><rect x="2" y="2" width="16" height="16" rx="2"/></svg>
+      Schedule Builder
+    </button>
+    <button class="nav-item" onclick="showPage('idea-bank')" id="nav-idea-bank">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><path d="M10 6v8M6 10h8"/></svg>
+      Idea Bank
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    v2.0 &mdash; Mike Levin / EMD
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- ===== THIS WEEK PAGE ===== -->
+  <div class="page active" id="page-this-week">
+    <div class="page-header">
+      <div>
+        <div class="page-title">This Week</div>
+        <div class="page-subtitle">News-driven email hooks. Paste stories to generate new ones.</div>
+      </div>
+      <div class="date-badge" id="week-date-badge"></div>
+    </div>
+
+    <!-- Story input -->
+    <div class="story-input-panel">
+      <h3>Add stories for this week</h3>
+      <p>Paste article text, URLs, or bullet-point summaries. Claude will extract email hooks and subject ideas.</p>
+      <textarea class="story-textarea" id="story-input" placeholder="Paste article content, URLs, or story summaries here...&#10;&#10;Example:&#10;Fox News: California Sheriff Chad Bianco seized 650,000 ballots from the Nov 2025 Prop 50 special election, defying the CA Secretary of State. Bianco is the GOP frontrunner for California governor..."></textarea>
+      <div class="input-row">
+        <button class="btn btn-primary" onclick="generateFromStories()">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3v14M3 10l7 7 7-7"/></svg>
+          Generate hooks from stories
+        </button>
+        <button class="btn btn-secondary" onclick="clearStories()">Clear</button>
+        <span style="font-size:11px;color:var(--text-muted);margin-left:4px;" id="story-status"></span>
+      </div>
+    </div>
+
+    <!-- Status bar (hidden by default) -->
+    <div class="status-bar" id="gen-status" style="display:none;">
+      <div class="status-spinner"></div>
+      <span id="gen-status-text">Analyzing stories and generating hooks...</span>
+    </div>
+
+    <!-- This week cards -->
+    <div class="section-header">
+      <span class="section-label">Email hooks — week of <span id="week-label-inline"></span></span>
+      <button class="btn btn-secondary" onclick="scheduleAllThisWeek()">Add all to schedule →</button>
+    </div>
+
+    <div id="this-week-cards">
+      <!-- Seeded with the stories from conversation -->
+      <div class="idea-card" data-type="threat" data-brief="Subject idea: Democrats need just 3 seats to flip the House. Here are the ones that will decide it.
+
+Source: Decision Desk HQ / CNN — 2026 House battleground analysis
+
+Hook: DDHQ analysis shows Democrats are well-positioned to win back the House in 2026 — Trump's approval near 43% is historically associated with ~30-seat majority-party losses. But the battlefield is tight. Dems need to pick up roughly 3 net seats, and the races are concentrated in a short target list of competitive districts.
+
+Core message: EMD isn't spraying money everywhere — we know exactly which races decide the majority and we're investing in them. Your donation goes to the right places at the right time.
+
+Ask: Chip in to Elect More Democrats to fund the specific races that will decide House control.
+
+Urgency: Evergreen | Tone: Strategic / confident | Ask: Hard dollar">
+        <div class="idea-card-header">
+          <div class="source-row"><span class="source-dot"></span><span class="source-text">Decision Desk HQ / CNN — 2026 House battleground analysis</span></div>
+          <div class="card-title-row">
+            <div class="card-title">Democrats need just 3 seats to flip the House. Here are the ones that will decide it.</div>
+          </div>
+          <div class="card-hook">DDHQ analysis shows Trump approval near 43% — historically ~30-seat majority losses. Dems need 3 net seats, concentrated in a short competitive target list. EMD knows which races matter and is investing in them. Position as a strategic allocator, not a scatter-shot fundraiser.</div>
+          <div class="tag-row">
+            <span class="tag tag-blue">majority math</span>
+            <span class="tag tag-green">strategic frame</span>
+            <span class="tag tag-amber">confident/urgent</span>
+            <span class="tag tag-red">hard dollar ask</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="draftCard(this)">Draft email ✦</button>
+          <button class="btn btn-secondary" onclick="addToSchedule(this)">Add to schedule</button>
+          <button class="btn btn-ghost" onclick="copyBrief(this)">Copy brief</button>
+        </div>
+        <div class="draft-output"></div>
+      </div>
+
+      <div class="idea-card" data-type="threat" data-brief="Subject idea: There are 25 Republican-held seats Democrats can flip. EMD is already working on them.
+
+Source: Decision Desk HQ — 25 GOP target seats series
+
+Hook: DDHQ identified 25 GOP-held districts as the core Democratic target list for 2026 — and only 4 of those districts voted for Harris in 2024. Democrats have to grind out uphill wins in most of them. Early investment matters more in these races.
+
+Core message: EMD has done the homework. We know the list. We need resources to make the most of these opportunities before Republicans lock them down.
+
+Ask: Donate to support Democrats in the 25 districts that will decide the House majority.
+
+Urgency: Evergreen | Tone: Strategic / calm | Ask: Hard dollar">
+        <div class="idea-card-header">
+          <div class="source-row"><span class="source-dot"></span><span class="source-text">Decision Desk HQ — 25 GOP target seats series</span></div>
+          <div class="card-title-row">
+            <div class="card-title">There are 25 Republican-held seats Democrats can flip. EMD is already working on them.</div>
+          </div>
+          <div class="card-hook">DDHQ identified 25 GOP-held districts as core Democratic targets — only 4 voted for Harris in 2024. Uphill fights, which means early investment is critical. Frame EMD as the organization that already knows the list and is doing the groundwork while others catch up.</div>
+          <div class="tag-row">
+            <span class="tag tag-blue">target list hook</span>
+            <span class="tag tag-green">EMD as coordinator</span>
+            <span class="tag tag-amber">strategic/calm</span>
+            <span class="tag tag-red">hard dollar ask</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="draftCard(this)">Draft email ✦</button>
+          <button class="btn btn-secondary" onclick="addToSchedule(this)">Add to schedule</button>
+          <button class="btn btn-ghost" onclick="copyBrief(this)">Copy brief</button>
+        </div>
+        <div class="draft-output"></div>
+      </div>
+
+      <div class="idea-card" data-type="threat" data-brief="Subject idea: Republicans are trying to redistrict Democrats out of Congress before a single vote is cast.
+
+Source: Decision Desk HQ / Inside Elections redistricting reporting
+
+Hook: Florida Republicans may redistrict in April's special session, potentially wiping out 5 Democratic-held seats. In Virginia, a GOP lawsuit is blocking a Democratic redistricting effort. The map is actively being redrawn in both directions right now.
+
+Core message: The fight for the House isn't just about November — it's happening in state legislatures and courtrooms right now. EMD supports Democrats fighting on all fronts.
+
+Ask: Chip in to Elect More Democrats to fund candidates navigating a hostile redistricting landscape.
+
+Urgency: Breaking/current | Tone: Urgent / alarmed | Ask: Hard dollar">
+        <div class="idea-card-header">
+          <div class="source-row"><span class="source-dot"></span><span class="source-text">Decision Desk HQ / Inside Elections — redistricting threat</span></div>
+          <div class="card-title-row">
+            <div class="card-title">Republicans are trying to redistrict Democrats out of Congress before a single vote is cast.</div>
+          </div>
+          <div class="card-hook">Florida Republicans may call a special session in April to redistrict and wipe out up to 5 Democratic seats. Virginia GOP is blocking a Democratic redistricting effort in court. The map is being redrawn right now, in real time, and it will determine what's even possible in November.</div>
+          <div class="tag-row">
+            <span class="tag tag-red">structural threat</span>
+            <span class="tag tag-blue">democracy defense</span>
+            <span class="tag tag-amber">urgent/alarmed</span>
+            <span class="tag tag-red">hard dollar ask</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="draftCard(this)">Draft email ✦</button>
+          <button class="btn btn-secondary" onclick="addToSchedule(this)">Add to schedule</button>
+          <button class="btn btn-ghost" onclick="copyBrief(this)">Copy brief</button>
+        </div>
+        <div class="draft-output"></div>
+      </div>
+
+      <div class="idea-card" data-type="threat" data-brief="Subject idea: A Republican sheriff just seized 650,000 California ballots — and he's running for governor.
+
+Source: Fox News, March 22, 2026
+
+Hook: Riverside County Sheriff Chad Bianco — currently leading Republican polling for California governor — seized 650,000 ballots from the November 2025 Prop 50 special election, defying California's Secretary of State and AG. Prop 50 was the Democrat-drawn redistricting measure that passed. CA elections officials say the claims of excess votes are based on misread intake logs; the final count was off by just 0.16%.
+
+Core message: When Democrats win, Republicans don't accept it — they escalate. A GOP gubernatorial frontrunner is using a sheriff's badge to relitigate an election he lost. This is what's at stake in 2026.
+
+Ask: Chip in to Elect More Democrats — because winning isn't enough if the other side refuses to accept results.
+
+Urgency: This week | Tone: Urgent / direct | Ask: Hard dollar">
+        <div class="idea-card-header">
+          <div class="source-row"><span class="source-dot"></span><span class="source-text">Fox News — CA Sheriff Bianco ballot seizure (March 22, 2026)</span></div>
+          <div class="card-title-row">
+            <div class="card-title">A Republican sheriff just seized 650,000 California ballots — and he's running for governor.</div>
+          </div>
+          <div class="card-hook">Riverside County Sheriff Chad Bianco — GOP frontrunner for CA governor — seized 650,000 ballots from the November 2025 Prop 50 special election in defiance of the Secretary of State and AG. Prop 50 was the Democratic redistricting measure. Elections officials say the discrepancy was just 0.16%. When Democrats win, Republicans escalate.</div>
+          <div class="tag-row">
+            <span class="tag tag-red">election denial</span>
+            <span class="tag tag-blue">democracy stakes</span>
+            <span class="tag tag-amber">urgent/alarmed</span>
+            <span class="tag tag-red">hard dollar ask</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="draftCard(this)">Draft email ✦</button>
+          <button class="btn btn-secondary" onclick="addToSchedule(this)">Add to schedule</button>
+          <button class="btn btn-ghost" onclick="copyBrief(this)">Copy brief</button>
+        </div>
+        <div class="draft-output"></div>
+      </div>
+
+      <div class="idea-card" data-type="threat" data-brief="Subject idea: The Republican frontrunner for California governor is running on election denial — and polling ahead.
+
+Source: Fox News / CA governor race polling (March 2026)
+
+Hook: Chad Bianco is leading Republican polling for California governor while seizing ballots from a race his party lost. He's based in Riverside County — the same region as CA-49 (Mike Levin's district). This is the most extreme version of Trump's movement running for governor in our backyard.
+
+Core message: Mike Levin is writing from CA-49 to say this isn't abstract. The man trying to become our governor just seized our votes. That's why we fight, and that's why Elect More Democrats exists.
+
+Ask: Support Elect More Democrats to send a message from California that we won't let election denial become mainstream here.
+
+Urgency: This week | Tone: Direct / personal | Ask: Hard dollar">
+        <div class="idea-card-header">
+          <div class="source-row"><span class="source-dot"></span><span class="source-text">Fox News / CA governor race context — CA-49 local angle</span></div>
+          <div class="card-title-row">
+            <div class="card-title">The Republican frontrunner for California governor is running on election denial — and he's polling ahead.</div>
+          </div>
+          <div class="card-hook">Bianco leads GOP governor polling while litigating a lost election via badge and gun. He's in Riverside County — CA-49 territory. Mike Levin has standing to write this one personally: "The man trying to become our governor just seized our votes." Strong local urgency that makes it feel immediate rather than national-abstract.</div>
+          <div class="tag-row">
+            <span class="tag tag-red">CA gov race</span>
+            <span class="tag tag-blue">local stakes / CA-49</span>
+            <span class="tag tag-amber">direct/personal</span>
+            <span class="tag tag-red">hard dollar ask</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="draftCard(this)">Draft email ✦</button>
+          <button class="btn btn-secondary" onclick="addToSchedule(this)">Add to schedule</button>
+          <button class="btn btn-ghost" onclick="copyBrief(this)">Copy brief</button>
+        </div>
+        <div class="draft-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCHEDULE BUILDER PAGE ===== -->
+  <div class="page" id="page-schedule">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Schedule Builder</div>
+        <div class="page-subtitle">Drag ideas onto the calendar or auto-schedule. Click any slot to assign or remove.</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="clearSchedule()">Clear week</button>
+        <button class="btn btn-primary" onclick="autoSchedule()">Auto-schedule ✦</button>
+      </div>
+    </div>
+
+    <div class="sched-controls">
+      <div class="week-nav">
+        <button onclick="changeWeek(-1)">‹</button>
+        <div class="week-label" id="sched-week-label"></div>
+        <button onclick="changeWeek(1)">›</button>
+      </div>
+      <div class="status-bar" id="sched-status" style="display:none;flex:1;margin-bottom:0;">
+        <div class="status-spinner"></div>
+        <span id="sched-status-text">Auto-scheduling...</span>
+      </div>
+    </div>
+
+    <div class="schedule-grid" id="schedule-grid"></div>
+
+    <!-- Queued items -->
+    <div class="section-header">
+      <span class="section-label">Unscheduled ideas (<span id="queue-count">0</span>)</span>
+    </div>
+    <div id="schedule-queue" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+  </div>
+
+  <!-- ===== IDEA BANK PAGE ===== -->
+  <div class="page" id="page-idea-bank">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Idea Bank</div>
+        <div class="page-subtitle">Evergreen email concepts. Filter, browse, and draft.</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-chips" id="bank-chips">
+        <span class="chip active" data-type="all">All</span>
+        <span class="chip" data-type="momentum">Momentum</span>
+        <span class="chip" data-type="threat">Threat / Stakes</span>
+        <span class="chip" data-type="issue">Issue-driven</span>
+        <span class="chip" data-type="deadline">Deadline</span>
+        <span class="chip" data-type="grassroots">Grassroots</span>
+        <span class="chip" data-type="vision">Vision</span>
+      </div>
+      <select class="filter-select" id="bank-tone">
+        <option value="">Any tone</option>
+        <option>Urgent / alarmed</option>
+        <option>Strategic / calm</option>
+        <option>Hopeful / rallying</option>
+        <option>Direct / personal</option>
+      </select>
+      <select class="filter-select" id="bank-ask">
+        <option value="">Any ask</option>
+        <option>Hard dollar ask</option>
+        <option>Soft / action ask</option>
+        <option>Recurring donor</option>
+      </select>
+    </div>
+
+    <div class="bank-actions">
+      <button class="btn btn-primary" onclick="renderBank()">Generate 6 ideas ✦</button>
+      <button class="btn btn-secondary" onclick="shuffleBank()">Shuffle</button>
+    </div>
+
+    <div id="bank-output">
+      <div class="empty-state">
+        <div class="empty-icon">💡</div>
+        Hit "Generate ideas" or shuffle to browse the bank.
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- MODAL for slot assignment -->
+<div class="modal-overlay" id="slot-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <h3 id="modal-title">Assign to slot</h3>
+    <p id="modal-subtitle">Choose an idea to schedule for this slot.</p>
+    <div class="modal-grid" id="modal-options"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="clearSlot()">Remove</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSlot()">Assign</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="copied-toast" id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let apiKey = localStorage.getItem('emd_api_key') || '';
+let schedule = JSON.parse(localStorage.getItem('emd_schedule') || '{}');
+let currentWeekOffset = 0;
+let activeSlot = null; // {weekKey, dayIdx, sendIdx}
+let selectedModalIdx = null;
+let bankActiveType = 'all';
+let bankDisplayed = [];
+
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const SENDS = ['Send 1','Send 2'];
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = function() {
+  if (apiKey) {
+    document.getElementById('api-key-input').value = apiKey;
+    updateApiStatus();
+  }
+  updateDateBadges();
+  renderScheduleGrid();
+  renderScheduleQueue();
+};
+
+function updateDateBadges() {
+  const now = new Date();
+  const monday = getMonday(now, currentWeekOffset);
+  const friday = new Date(monday); friday.setDate(friday.getDate() + 4);
+  const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  const label = `Week of ${fmt(monday)}${currentWeekOffset === 0 ? ' (this week)' : ''}`;
+  const el = document.getElementById('week-date-badge');
+  if (el) el.textContent = label;
+  const el2 = document.getElementById('week-label-inline');
+  if (el2) el2.textContent = fmt(monday);
+  const el3 = document.getElementById('sched-week-label');
+  if (el3) el3.textContent = `${fmt(monday)} – ${fmt(friday)}`;
+}
+
+function getMonday(base, offset) {
+  const d = new Date(base);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day) + (offset * 7);
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function getWeekKey(offset) {
+  const d = getMonday(new Date(), offset);
+  return d.toISOString().split('T')[0];
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'schedule') renderScheduleGrid();
+}
+
+// ============================================================
+// API KEY
+// ============================================================
+function saveApiKey(val) {
+  apiKey = val.trim();
+  localStorage.setItem('emd_api_key', apiKey);
+  updateApiStatus();
+}
+
+function updateApiStatus() {
+  const el = document.getElementById('api-status');
+  if (apiKey.startsWith('sk-ant-') && apiKey.length > 20) {
+    el.textContent = '✓ Key saved';
+    el.className = 'api-status ok';
+  } else if (apiKey) {
+    el.textContent = 'Key format looks off';
+    el.className = 'api-status';
+  } else {
+    el.textContent = 'Enter key to enable drafting';
+    el.className = 'api-status';
+  }
+}
+
+// ============================================================
+// CLAUDE API CALL
+// ============================================================
+async function callClaude(prompt, onChunk) {
+  if (!apiKey) { alert('Please enter your Anthropic API key in the sidebar.'); return null; }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content?.map(c => c.text || '').join('') || '';
+}
+
+// ============================================================
+// DRAFT EMAIL
+// ============================================================
+async function draftCard(btn) {
+  if (!apiKey) { alert('Enter your Anthropic API key in the sidebar first.'); return; }
+  const card = btn.closest('.idea-card');
+  const brief = card.dataset.brief;
+  const draftEl = card.querySelector('.draft-output');
+  btn.disabled = true;
+  btn.textContent = 'Drafting…';
+  draftEl.className = 'draft-output visible loading';
+  draftEl.textContent = 'Generating email draft…';
+
+  const prompt = `You are an expert Democratic political fundraising email writer for Elect More Democrats, a project of Congressman Mike Levin (CA-49).
+
+Write a fundraising email based on this brief. Requirements:
+- 160-200 words
+- Short punchy paragraphs (2-3 sentences max each)
+- Salutation: "Friend,"
+- Sign off: "Mike Levin\\nElect More Democrats"
+- Include a clear donation CTA
+- Urgent but not panicked tone
+- Do NOT include a subject line (just the body)
+
+Brief:
+${brief}
+
+Write the email body now:`;
+
+  try {
+    const text = await callClaude(prompt);
+    draftEl.className = 'draft-output visible';
+    draftEl.textContent = text;
+    btn.textContent = 'Redraft ✦';
+  } catch(e) {
+    draftEl.className = 'draft-output visible';
+    draftEl.textContent = 'Error: ' + e.message;
+    btn.textContent = 'Try again ✦';
+  }
+  btn.disabled = false;
+}
+
+// ============================================================
+// COPY BRIEF
+// ============================================================
+function copyBrief(btn) {
+  const card = btn.closest('.idea-card');
+  const brief = card.dataset.brief || card.querySelector('.card-title').textContent;
+  navigator.clipboard.writeText(brief).catch(() => {});
+  showToast('Brief copied!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ============================================================
+// GENERATE FROM STORIES (THIS WEEK)
+// ============================================================
+async function generateFromStories() {
+  const text = document.getElementById('story-input').value.trim();
+  if (!text) { alert('Paste some story content first.'); return; }
+  if (!apiKey) { alert('Enter your Anthropic API key in the sidebar first.'); return; }
+
+  const statusEl = document.getElementById('gen-status');
+  const statusText = document.getElementById('gen-status-text');
+  statusEl.style.display = 'flex';
+  statusText.textContent = 'Analyzing stories and generating email hooks…';
+
+  const prompt = `You are an expert Democratic political fundraising strategist for Elect More Democrats (EMD), a project of Congressman Mike Levin (CA-49).
+
+Analyze the following news stories or summaries. For each distinct story or angle, generate a fundraising email hook card in this EXACT JSON format. Return ONLY a JSON array, no other text:
+
+[
+  {
+    "source": "short source/outlet name and date",
+    "title": "compelling subject line / email title (max 12 words)",
+    "hook": "2-3 sentence copywriter's brief explaining the angle, what it unlocks emotionally, and how to frame the ask (max 60 words)",
+    "tags": ["tag1", "tag2", "tag3"],
+    "type": "one of: threat|momentum|issue|grassroots|vision|deadline",
+    "brief": "full email brief including: source, hook narrative, core message, suggested ask, urgency, tone"
+  }
+]
+
+Generate 3-5 hooks. Focus on Democratic donor motivations: protecting democracy, majority math, funding frontline candidates, grassroots vs. PAC contrast, economic justice.
+
+Stories/content to analyze:
+${text}`;
+
+  try {
+    const raw = await callClaude(prompt);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const hooks = JSON.parse(clean);
+    renderGeneratedCards(hooks);
+    statusEl.style.display = 'none';
+    showToast(`Generated ${hooks.length} new hooks!`);
+  } catch(e) {
+    statusEl.style.display = 'none';
+    document.getElementById('story-status').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderGeneratedCards(hooks) {
+  const container = document.getElementById('this-week-cards');
+  hooks.forEach(hook => {
+    const card = document.createElement('div');
+    card.className = 'idea-card';
+    card.dataset.type = hook.type || 'news';
+    card.dataset.brief = hook.brief || `${hook.title}\n\n${hook.hook}`;
+    card.innerHTML = `
+      <div class="idea-card-header">
+        <div class="source-row"><span class="source-dot"></span><span class="source-text">${hook.source || 'User-submitted story'}</span></div>
+        <div class="card-title-row">
+          <div class="card-title">${hook.title}</div>
+        </div>
+        <div class="card-hook">${hook.hook}</div>
+        <div class="tag-row">${(hook.tags||[]).map(t=>`<span class="tag tag-blue">${t}</span>`).join('')}</div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-primary" onclick="draftCard(this)">Draft email ✦</button>
+        <button class="btn btn-secondary" onclick="addToSchedule(this)">Add to schedule</button>
+        <button class="btn btn-ghost" onclick="copyBrief(this)">Copy brief</button>
+      </div>
+      <div class="draft-output"></div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function clearStories() {
+  document.getElementById('story-input').value = '';
+  document.getElementById('story-status').textContent = '';
+}
+
+// ============================================================
+// SCHEDULE BUILDER
+// ============================================================
+function changeWeek(dir) {
+  currentWeekOffset += dir;
+  updateDateBadges();
+  renderScheduleGrid();
+}
+
+function renderScheduleGrid() {
+  const grid = document.getElementById('schedule-grid');
+  const weekKey = getWeekKey(currentWeekOffset);
+  const monday = getMonday(new Date(), currentWeekOffset);
+
+  grid.innerHTML = DAYS.map((day, dayIdx) => {
+    const date = new Date(monday);
+    date.setDate(date.getDate() + dayIdx);
+    const dateStr = date.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+
+    const slots = SENDS.map((send, sendIdx) => {
+      const key = `${weekKey}_${dayIdx}_${sendIdx}`;
+      const assigned = schedule[key];
+      if (assigned) {
+        return `<div class="schedule-slot filled type-${assigned.type}" onclick="openSlotModal('${weekKey}', ${dayIdx}, ${sendIdx})">
+          <div class="slot-label">${send}</div>
+          <div class="slot-title">${assigned.title}</div>
+        </div>`;
+      }
+      return `<div class="schedule-slot" onclick="openSlotModal('${weekKey}', ${dayIdx}, ${sendIdx})">
+        <div class="slot-label">${send}</div>
+        <div class="slot-empty">Empty — click to assign</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="schedule-day">
+      <div class="schedule-day-header">
+        <div>${day}</div>
+        <div class="schedule-day-date">${dateStr}</div>
+      </div>
+      ${slots}
+    </div>`;
+  }).join('');
+
+  renderScheduleQueue();
+}
+
+function getAllIdeas() {
+  const thisWeekCards = Array.from(document.querySelectorAll('#this-week-cards .idea-card'));
+  return thisWeekCards.map(card => ({
+    title: card.querySelector('.card-title')?.textContent || 'Untitled',
+    hook: card.querySelector('.card-hook')?.textContent || '',
+    brief: card.dataset.brief || '',
+    type: card.dataset.type || 'news'
+  })).concat(BANK_IDEAS);
+}
+
+function renderScheduleQueue() {
+  const weekKey = getWeekKey(currentWeekOffset);
+  const assigned = new Set(Object.values(schedule).map(s => s.title));
+  const unscheduled = getAllIdeas().filter(i => !assigned.has(i.title)).slice(0, 10);
+  const queueEl = document.getElementById('schedule-queue');
+  const countEl = document.getElementById('queue-count');
+  if (!queueEl) return;
+  countEl.textContent = unscheduled.length;
+  queueEl.innerHTML = unscheduled.map((idea, i) => `
+    <div class="card" style="padding:12px 14px;cursor:pointer;" onclick="quickAddToSchedule(${i})">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">${idea.type}</div>
+      <div style="font-size:13px;font-weight:500;line-height:1.35;">${idea.title}</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// SLOT MODAL
+// ============================================================
+function openSlotModal(weekKey, dayIdx, sendIdx) {
+  activeSlot = { weekKey, dayIdx, sendIdx };
+  selectedModalIdx = null;
+  const key = `${weekKey}_${dayIdx}_${sendIdx}`;
+  const current = schedule[key];
+
+  const dayName = DAYS[dayIdx];
+  const send = SENDS[sendIdx];
+  document.getElementById('modal-title').textContent = `${dayName} — ${send}`;
+  document.getElementById('modal-subtitle').textContent = current ? `Currently: "${current.title}"` : 'No idea assigned yet.';
+
+  const ideas = getAllIdeas();
+  const optionsEl = document.getElementById('modal-options');
+  optionsEl.innerHTML = ideas.slice(0, 12).map((idea, i) => `
+    <div class="modal-slot ${current && current.title === idea.title ? 'selected' : ''}" onclick="selectModalIdea(${i}, this)">
+      <div class="modal-slot-label">${idea.type}</div>
+      <div class="modal-slot-title">${idea.title}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('slot-modal').classList.add('open');
+}
+
+function selectModalIdea(idx, el) {
+  selectedModalIdx = idx;
+  document.querySelectorAll('.modal-slot').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function confirmSlot() {
+  if (selectedModalIdx === null || !activeSlot) { closeModal(); return; }
+  const { weekKey, dayIdx, sendIdx } = activeSlot;
+  const key = `${weekKey}_${dayIdx}_${sendIdx}`;
+  const idea = getAllIdeas()[selectedModalIdx];
+  schedule[key] = idea;
+  localStorage.setItem('emd_schedule', JSON.stringify(schedule));
+  renderScheduleGrid();
+  closeModal();
+  showToast('Scheduled!');
+}
+
+function clearSlot() {
+  if (!activeSlot) { closeModal(); return; }
+  const { weekKey, dayIdx, sendIdx } = activeSlot;
+  const key = `${weekKey}_${dayIdx}_${sendIdx}`;
+  delete schedule[key];
+  localStorage.setItem('emd_schedule', JSON.stringify(schedule));
+  renderScheduleGrid();
+  closeModal();
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('slot-modal')) return;
+  document.getElementById('slot-modal').classList.remove('open');
+  activeSlot = null;
+  selectedModalIdx = null;
+}
+
+function clearSchedule() {
+  if (!confirm('Clear all scheduled items for this week?')) return;
+  const weekKey = getWeekKey(currentWeekOffset);
+  Object.keys(schedule).forEach(k => { if (k.startsWith(weekKey)) delete schedule[k]; });
+  localStorage.setItem('emd_schedule', JSON.stringify(schedule));
+  renderScheduleGrid();
+}
+
+// ============================================================
+// AUTO-SCHEDULE
+// ============================================================
+async function autoSchedule() {
+  if (!apiKey) { alert('Enter your Anthropic API key in the sidebar.'); return; }
+  const statusEl = document.getElementById('sched-status');
+  const statusText = document.getElementById('sched-status-text');
+  statusEl.style.display = 'flex';
+  statusText.textContent = 'Analyzing ideas and building optimal schedule…';
+
+  const ideas = getAllIdeas().slice(0, 20);
+  const weekKey = getWeekKey(currentWeekOffset);
+  const monday = getMonday(new Date(), currentWeekOffset);
+
+  const ideaList = ideas.map((idea, i) => `${i}: [${idea.type}] ${idea.title}`).join('\n');
+  const mondayStr = monday.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+  const prompt = `You are a Democratic political fundraising strategist building an email send schedule.
+
+Week starting: ${mondayStr}
+Days available: Monday through Friday
+Sends per day: 2 (morning and evening)
+Total slots: 10
+
+Available ideas (index: type | title):
+${ideaList}
+
+Build an optimal 5-day, 2-send-per-day schedule. Rules:
+1. Vary email types — don't cluster similar types
+2. Put urgent/news-driven sends early in the week
+3. Deadline emails should go Thursday/Friday
+4. Alternate tone: urgent → strategic → hopeful pattern
+5. Leave some slots empty if you don't have enough quality ideas
+
+Return ONLY valid JSON, no other text:
+{
+  "schedule": [
+    {"day": 0, "send": 0, "idea_index": 3},
+    {"day": 0, "send": 1, "idea_index": 7},
+    ...
+  ],
+  "reasoning": "one sentence explaining the scheduling logic"
+}`;
+
+  try {
+    const raw = await callClaude(prompt);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+    result.schedule.forEach(slot => {
+      const key = `${weekKey}_${slot.day}_${slot.send}`;
+      const idea = ideas[slot.idea_index];
+      if (idea) schedule[key] = idea;
+    });
+    localStorage.setItem('emd_schedule', JSON.stringify(schedule));
+    renderScheduleGrid();
+    statusEl.style.display = 'none';
+    showToast('Schedule built! ' + (result.reasoning || ''));
+  } catch(e) {
+    statusEl.style.display = 'none';
+    showToast('Error: ' + e.message);
+  }
+}
+
+function scheduleAllThisWeek() {
+  showPage('schedule');
+  setTimeout(autoSchedule, 300);
+}
+
+function addToSchedule(btn) {
+  showPage('schedule');
+  showToast('Switched to Schedule — click a slot or hit Auto-schedule.');
+}
+
+function quickAddToSchedule(queueIdx) {
+  const weekKey = getWeekKey(currentWeekOffset);
+  const ideas = getAllIdeas();
+  const assigned = new Set(Object.values(schedule).map(s => s.title));
+  const unscheduled = ideas.filter(i => !assigned.has(i.title));
+  const idea = unscheduled[queueIdx];
+  if (!idea) return;
+  // Find first empty slot
+  for (let d = 0; d < 5; d++) {
+    for (let s = 0; s < 2; s++) {
+      const key = `${weekKey}_${d}_${s}`;
+      if (!schedule[key]) {
+        schedule[key] = idea;
+        localStorage.setItem('emd_schedule', JSON.stringify(schedule));
+        renderScheduleGrid();
+        showToast(`Added to ${DAYS[d]} ${SENDS[s]}`);
+        return;
+      }
+    }
+  }
+  showToast('All slots are filled for this week!');
+}
+
+// ============================================================
+// IDEA BANK
+// ============================================================
+const BANK_IDEAS = [
+  {type:"momentum",title:"Toss-up upgrade: we're moving in the right direction",hook:"A rating shift from Toss-Up to Lean D in a key district. Show donors their money is working before you ask for more.",brief:"Subject idea: Toss-up upgrade — we're moving in the right direction\n\nHook: A race just moved from Toss-Up to Lean D — that's investment working. Frame it as: your grassroots dollars vs. their PAC money, and right now we're winning.\n\nCore message: When ratings improve it's because of early resources. EMD provides that early firepower.\n\nUrgency: Evergreen | Tone: Hopeful / rallying | Ask: Hard dollar"},
+  {type:"threat",title:"The NRCC just put this district on their target list",hook:"Use NRCC targeting announcements as the alarm bell. Tie it to the broader majority math.",brief:"Subject idea: The NRCC just put this district on their target list\n\nHook: NRCC targeting signals that Republicans see a weakness they can exploit. This is the alarm bell — respond immediately before they build momentum.\n\nCore message: Frontline Democrats need resources the moment Republicans start targeting them.\n\nUrgency: Breaking news | Tone: Urgent / alarmed | Ask: Hard dollar"},
+  {type:"deadline",title:"FEC deadline: our numbers go public in 48 hours",hook:"Pre-deadline urgency — make the donor feel like an author of your report card.",brief:"Subject idea: FEC deadline — our numbers go public in 48 hours\n\nHook: Every FEC report is a public statement of strength or weakness. Donors aren't just giving money — they're writing the narrative Republicans and press will read.\n\nUrgency: EOM deadline | Tone: Direct / personal | Ask: Hard dollar"},
+  {type:"news",title:"[Republican] just said this on the House floor",hook:"Pull a damaging clip or vote from a GOP opponent. Let the contrast do the work.",brief:"Subject idea: [Republican] just said this on the House floor\n\nHook: A damaging GOP statement or vote is the hook. Contrast email: this is what they believe. Here's what Democrats are fighting for instead.\n\nUrgency: Breaking news | Tone: Urgent / alarmed | Ask: Hard dollar"},
+  {type:"grassroots",title:"We raised $X from [N] donors in 24 hours — here's what that means",hook:"Social proof email: show a recent fundraising surge and explain what it unlocks.",brief:"Subject idea: We raised $X from [N] donors in 24 hours — here's what that means\n\nHook: Social proof + transparency. Explain exactly what a fundraising surge funds: more ads, more staff, more field. Demystify where the money goes.\n\nUrgency: Evergreen | Tone: Hopeful / rallying | Ask: Recurring donor"},
+  {type:"issue",title:"No one should choose between rent and a doctor's visit",hook:"Health care access tied to a GOP threat. Personal, economic framing — no news hook needed.",brief:"Subject idea: No one should choose between rent and a doctor's visit\n\nHook: Evergreen health care frame. Can be pegged to a GOP vote, a rollback attempt, or used standalone. Personal economic lens — this is about real families, not policy abstractions.\n\nUrgency: Evergreen | Tone: Direct / personal | Ask: Hard dollar"},
+  {type:"vision",title:"Here's what a Democratic majority would do in its first 100 days",hook:"Forward-looking vision email. 'Here's what we're actually fighting for — not just against.'",brief:"Subject idea: Here's what a Democratic majority would do in its first 100 days\n\nHook: Affirmative email. Name specific deliverables: insulin cap, climate investments, workers' rights. Make the majority feel tangible and close.\n\nUrgency: Evergreen | Tone: Hopeful / rallying | Ask: Hard dollar"},
+  {type:"vision",title:"What Democrats did the last time they had the House majority",hook:"Retrospective + vision. ARP, climate investments — remind donors what majority power delivers.",brief:"Subject idea: What Democrats did the last time they had the House majority\n\nHook: Proof of concept email. Don't just talk about what could happen — remind donors what already did happen when Democrats had the gavel.\n\nUrgency: Evergreen | Tone: Strategic / calm | Ask: Hard dollar"},
+  {type:"grassroots",title:"Our average donation is $[X]. That's who we are.",hook:"Average gift frame — donors are ordinary people, not wealthy PACs.",brief:"Subject idea: Our average donation is $[X]. That's who we are.\n\nHook: Identity email. Our average gift proves we're a grassroots operation. That's the contrast with corporate Republican PACs. Lean into it.\n\nUrgency: Evergreen | Tone: Direct / personal | Ask: Recurring donor"},
+  {type:"threat",title:"They're trying to redistrict Democrats out of Congress",hook:"Redistricting / structural threat — Republicans making elections unwinnable before they start.",brief:"Subject idea: They're trying to redistrict Democrats out of Congress\n\nHook: Map redraws = the pre-election election. Republicans know they can't always win on the issues, so they engineer the geography.\n\nUrgency: Evergreen | Tone: Urgent / alarmed | Ask: Hard dollar"},
+  {type:"momentum",title:"Inside Elections just moved this race in our direction",hook:"Rating upgrade as proof that investment is working. Toss-Up → Lean D.",brief:"Subject idea: Inside Elections just moved this race in our direction\n\nHook: External credibility from Inside Elections. Use their language. 'If national analysts are seeing this, imagine what another $50K does.'\n\nUrgency: Evergreen | Tone: Hopeful / rallying | Ask: Hard dollar"},
+  {type:"vision",title:"Climate isn't a future problem. It's a right now problem.",hook:"Climate-first email. Use EPA rollback or offshore drilling vote as peg.",brief:"Subject idea: Climate isn't a future problem. It's a right now problem.\n\nHook: Urgency without doom. Tie to a specific GOP rollback or vote. Clean air and water as economic + health issues, not just environmentalism.\n\nUrgency: Evergreen | Tone: Direct / personal | Ask: Hard dollar"},
+  {type:"deadline",title:"EOQ tonight: this is the number that gets reported",hook:"End of quarter with a specific threshold framing. 'We're $X short of a signal.'",brief:"Subject idea: EOQ tonight — this is the number that gets reported\n\nHook: Specific $ threshold. Make it real: 'We're $14,000 short of $250,000 before midnight. That number gets reported to the FEC tomorrow.'\n\nUrgency: EOQ deadline | Tone: Urgent / alarmed | Ask: Hard dollar"},
+  {type:"grassroots",title:"A donor named [First Name] gave $5. Here's why that matters.",hook:"Humanize a small-dollar donor. The amount doesn't matter — the signal does.",brief:"Subject idea: A donor named [First Name] gave $5. Here's why that matters.\n\nHook: Micro-donor story. The message: even $5 from a nurse in Wisconsin tells Republicans that ordinary Americans are watching and showing up.\n\nUrgency: Evergreen | Tone: Direct / personal | Ask: Soft / action ask"},
+  {type:"vision",title:"Here's who we're fighting for — not just against",hook:"Affirmative donor email. Name specific constituents. Grassroots + issue in one.",brief:"Subject idea: Here's who we're fighting for — not just against\n\nHook: The nurse, the teacher, the small business owner. Name them. This isn't just opposition to Republicans — it's investment in the people in your district.\n\nUrgency: Evergreen | Tone: Hopeful / rallying | Ask: Recurring donor"},
+];
+
+function renderBank() {
+  const tone = document.getElementById('bank-tone').value;
+  const ask = document.getElementById('bank-ask').value;
+  let filtered = BANK_IDEAS.filter(i => {
+    if (bankActiveType !== 'all' && i.type !== bankActiveType) return false;
+    return true;
+  });
+  const sample = filtered.sort(() => Math.random() - 0.5).slice(0, 6);
+  bankDisplayed = sample;
+  renderBankCards(sample);
+}
+
+function shuffleBank() {
+  bankDisplayed = [...BANK_IDEAS].sort(() => Math.random() - 0.5).slice(0, 6);
+  renderBankCards(bankDisplayed);
+}
+
+function renderBankCards(ideas) {
+  const out = document.getElementById('bank-output');
+  if (!ideas.length) {
+    out.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>No ideas match — try broadening filters.</div>';
+    return;
+  }
+  out.innerHTML = ideas.map((idea, i) => `
+    <div class="idea-card" data-type="${idea.type}" data-brief="${idea.brief?.replace(/"/g,'&quot;') || ''}">
+      <div class="idea-card-header">
+        <div class="card-title-row">
+          <div class="card-title">${idea.title}</div>
+        </div>
+        <div class="card-hook">${idea.hook}</div>
+        <div class="tag-row">
+          <span class="tag tag-gray">${idea.type}</span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-primary" onclick="draftCard(this)">Draft email ✦</button>
+        <button class="btn btn-secondary" onclick="addToSchedule(this)">Add to schedule</button>
+        <button class="btn btn-ghost" onclick="copyBrief(this)">Copy brief</button>
+      </div>
+      <div class="draft-output"></div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('bank-chips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  document.querySelectorAll('#bank-chips .chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  bankActiveType = chip.dataset.type;
+});
+
+// ============================================================
+// INIT DATES
+// ============================================================
+updateDateBadges();
+</script>
+</body>
+</html>
