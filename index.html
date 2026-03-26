@@ -810,7 +810,7 @@ body {
     <!-- Story input -->
     <div class="story-input-panel">
       <h3>Add stories for this week</h3>
-      <p>Paste article text, URLs, or bullet-point summaries. Claude will extract email hooks and subject ideas.</p>
+      <p>Paste URLs or article text. URLs are fetched automatically via web search — just paste and go.</p>
       <textarea class="story-textarea" id="story-input" placeholder="Paste article content, URLs, or story summaries here...&#10;&#10;Example:&#10;Fox News: California Sheriff Chad Bianco seized 650,000 ballots from the Nov 2025 Prop 50 special election, defying the CA Secretary of State. Bianco is the GOP frontrunner for California governor..."></textarea>
       <div class="input-row">
         <button class="btn btn-primary" onclick="generateFromStories()">
@@ -1190,9 +1190,9 @@ function updateApiStatus() {
 }
 
 // ============================================================
-// CLAUDE API CALL
+// CLAUDE API CALL (plain, no tools)
 // ============================================================
-async function callClaude(prompt, onChunk) {
+async function callClaude(prompt) {
   if (!apiKey) { alert('Please enter your Anthropic API key in the sidebar.'); return null; }
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1206,6 +1206,67 @@ async function callClaude(prompt, onChunk) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
   return data.content?.map(c => c.text || '').join('') || '';
+}
+
+// ============================================================
+// CLAUDE API CALL WITH WEB SEARCH (agentic loop)
+// ============================================================
+async function callClaudeWithSearch(prompt, statusCallback) {
+  if (!apiKey) { alert('Please enter your Anthropic API key in the sidebar.'); return null; }
+
+  const tools = [{
+    type: 'web_search_20250305',
+    name: 'web_search'
+  }];
+
+  let messages = [{ role: 'user', content: prompt }];
+  let finalText = '';
+  let iterations = 0;
+  const MAX_ITER = 5;
+
+  while (iterations < MAX_ITER) {
+    iterations++;
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'web-search-2025-03-05'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        tools,
+        messages
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    // Collect text from this response
+    const textBlocks = data.content.filter(b => b.type === 'text').map(b => b.text);
+    if (textBlocks.length) finalText = textBlocks.join('');
+
+    // If stop_reason is end_turn or no tool_use blocks, we're done
+    const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
+    if (data.stop_reason === 'end_turn' || toolUseBlocks.length === 0) break;
+
+    // Update status to show searching
+    if (statusCallback) statusCallback('Searching the web for article content…');
+
+    // Add assistant message and tool results to continue the loop
+    messages.push({ role: 'assistant', content: data.content });
+    const toolResults = toolUseBlocks.map(block => ({
+      type: 'tool_result',
+      tool_use_id: block.id,
+      content: block.input ? JSON.stringify(block.input) : 'Search executed'
+    }));
+    messages.push({ role: 'user', content: toolResults });
+  }
+
+  return finalText;
 }
 
 // ============================================================
@@ -1270,21 +1331,27 @@ function showToast(msg) {
 // ============================================================
 // GENERATE FROM STORIES (THIS WEEK)
 // ============================================================
+function looksLikeUrl(str) {
+  return /^https?:\/\//i.test(str.trim()) || str.trim().split('\n').some(l => /^https?:\/\//i.test(l.trim()));
+}
+
+function extractUrls(text) {
+  return (text.match(/https?:\/\/[^\s]+/g) || []);
+}
+
 async function generateFromStories() {
   const text = document.getElementById('story-input').value.trim();
-  if (!text) { alert('Paste some story content first.'); return; }
+  if (!text) { alert('Paste some story content, URLs, or summaries first.'); return; }
   if (!apiKey) { alert('Enter your Anthropic API key in the sidebar first.'); return; }
 
   const statusEl = document.getElementById('gen-status');
   const statusText = document.getElementById('gen-status-text');
   statusEl.style.display = 'flex';
-  statusText.textContent = 'Analyzing stories and generating email hooks…';
 
-  const prompt = `You are an expert Democratic political fundraising strategist for Elect More Democrats (EMD), a project of Congressman Mike Levin (CA-49).
+  const hasUrls = looksLikeUrl(text);
+  const urls = extractUrls(text);
 
-Analyze the following news stories or summaries. For each distinct story or angle, generate a fundraising email hook card in this EXACT JSON format. Return ONLY a JSON array, no other text:
-
-[
+  const hookJsonSchema = `[
   {
     "source": "short source/outlet name and date",
     "title": "compelling subject line / email title (max 12 words)",
@@ -1293,17 +1360,55 @@ Analyze the following news stories or summaries. For each distinct story or angl
     "type": "one of: threat|momentum|issue|grassroots|vision|deadline",
     "brief": "full email brief including: source, hook narrative, core message, suggested ask, urgency, tone"
   }
-]
+]`;
 
-Generate 3-5 hooks. Focus on Democratic donor motivations: protecting democracy, majority math, funding frontline candidates, grassroots vs. PAC contrast, economic justice.
+  const hookInstructions = `You are an expert Democratic political fundraising strategist for Elect More Democrats (EMD), a project of Congressman Mike Levin (CA-49).
+
+Generate fundraising email hook cards based on the content. For each distinct story or angle, return a card in this EXACT JSON format. Return ONLY a JSON array, no other text, no markdown fences:
+
+${hookJsonSchema}
+
+Generate 3-5 hooks. Focus on Democratic donor motivations: protecting democracy, majority math, funding frontline candidates, grassroots vs. PAC contrast, economic justice.`;
+
+  try {
+    let raw;
+
+    if (hasUrls && urls.length > 0) {
+      // Use web search to fetch URL content, then generate hooks
+      statusText.textContent = `Fetching ${urls.length > 1 ? urls.length + ' articles' : 'article'} via web search…`;
+
+      const urlList = urls.map(u => `- ${u}`).join('\n');
+      const extraText = text.replace(/https?:\/\/[^\s]+/g, '').trim();
+
+      const prompt = `${hookInstructions}
+
+Please search for and read the content from these URLs, then generate email hook cards based on what you find:
+
+${urlList}
+
+${extraText ? `Additional context provided:\n${extraText}` : ''}
+
+After reading the articles, return ONLY the JSON array of hook cards.`;
+
+      raw = await callClaudeWithSearch(prompt, (msg) => { statusText.textContent = msg; });
+    } else {
+      // Plain text/summaries — no web search needed
+      statusText.textContent = 'Analyzing stories and generating email hooks…';
+
+      const prompt = `${hookInstructions}
 
 Stories/content to analyze:
 ${text}`;
 
-  try {
-    const raw = await callClaude(prompt);
+      raw = await callClaude(prompt);
+    }
+
+    statusText.textContent = 'Parsing hooks…';
     const clean = raw.replace(/```json|```/g, '').trim();
-    const hooks = JSON.parse(clean);
+    // Find JSON array in response (in case there's preamble text)
+    const jsonMatch = clean.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('No JSON array found in response');
+    const hooks = JSON.parse(jsonMatch[0]);
     renderGeneratedCards(hooks);
     statusEl.style.display = 'none';
     showToast(`Generated ${hooks.length} new hooks!`);
